@@ -87,6 +87,46 @@ void AGridManager::BeginPlay() {
 		return;
 	}
 
+	BuildUsedCellInstances();
+
+	SpawnPlayer();
+	SpawnEnemies();
+}
+
+AMasterPawn* AGridManager::SpawnPawnOnGrid(TSubclassOf<AMasterPawn> PawnClass, FIntVector2 CellCoords, EGridDirection Direction) {
+	UWorld* World = GetWorld();
+	if (!PawnClass || !World) {
+		return nullptr;
+	}
+
+	FVector PawnWorldLocation = GridToWorldLocation(CellCoords);
+	FRotator PawnWorldRotation = DirectionToWorldRotation(Direction);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AMasterPawn* SpawnedPawn = World->SpawnActor<AMasterPawn>(PawnClass, PawnWorldLocation, PawnWorldRotation, SpawnParams);
+	if (IsValid(SpawnedPawn)) {
+		SpawnedPawn->InitializePawnOnGrid(CellCoords, Direction, this);
+	}
+	return SpawnedPawn;
+}
+
+void AGridManager::SpawnPlayer() {
+	ActivePlayerPawn = SpawnPawnOnGrid(GridData->PlayerClass, GridData->PlayerStart, GridData->PlayerStartDirection);
+}
+
+void AGridManager::SpawnEnemies() {
+	ActiveEnemies.Empty();
+	for (const TPair<FIntVector2, FEnemySpawnData>& EnemyPair : GridData->listEnemiesStart) {
+		AMasterPawn* SpawnedEnemy = SpawnPawnOnGrid(EnemyPair.Value.PawnClass, EnemyPair.Key, EnemyPair.Value.StartDirection);
+		if (IsValid(SpawnedEnemy)) {
+			ActiveEnemies.Add(SpawnedEnemy);
+		}
+	}
+}
+
+void AGridManager::BuildUsedCellInstances() {
 	TArray<FIntVector2> UsedCells;
 	for (const TPair<FVector2D, FChemainStruct>& ChainDataPair : GridData->listChemainData) {
 		UsedCells.AddUnique(ChainDataPair.Value.GridCellPositionA);
@@ -102,62 +142,6 @@ void AGridManager::BeginPlay() {
 			}
 		}
 	}
-
-	ActivePlayerPawn = nullptr;
-	if (GridData->PlayerClass != nullptr && GetWorld() != nullptr) {
-		FVector PlayerWorldLocation = GridToWorldLocation(GridData->PlayerStart);
-		FRotator PlayerWorldRotation = DirectionToWorldRotation(GridData->PlayerStartDirection);
-
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		ActivePlayerPawn = GetWorld()->SpawnActor<AMasterPawn>(GridData->PlayerClass, PlayerWorldLocation, PlayerWorldRotation, SpawnParams);
-		if (IsValid(ActivePlayerPawn)) {
-			ActivePlayerPawn->InitializePawnOnGrid(GridData->PlayerStart, GridData->PlayerStartDirection, this);
-		}
-	}
-
-	ActiveEnemies.Empty();
-	if (GetWorld() != nullptr) {
-		for (const TPair<FIntVector2, FEnemySpawnData>& EnemyPair : GridData->listEnemiesStart) {
-			if (EnemyPair.Value.PawnClass == nullptr) {
-				continue;
-			}
-
-			FVector EnemyWorldLocation = GridToWorldLocation(EnemyPair.Key);
-			FRotator EnemyWorldRotation = DirectionToWorldRotation(EnemyPair.Value.StartDirection);
-
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-			AMasterPawn* SpawnedEnemy = GetWorld()->SpawnActor<AMasterPawn>(EnemyPair.Value.PawnClass, EnemyWorldLocation, EnemyWorldRotation, SpawnParams);
-			if (IsValid(SpawnedEnemy)) {
-				SpawnedEnemy->InitializePawnOnGrid(EnemyPair.Key, EnemyPair.Value.StartDirection, this);
-				ActiveEnemies.Add(SpawnedEnemy);
-			}
-		}
-	}
-}
-
-void AGridManager::ClearGrid() {
-
-	for (auto& Pair : RuntimeSpecialPaths) {
-		if (IsValid(Pair.Value)) {
-			Pair.Value->DestroyComponent();
-		}
-	}
-
-	for (auto& Pair : RuntimeSpecialCases) {
-		if (IsValid(Pair.Value)) {
-			Pair.Value->DestroyComponent();
-		}
-	}
-
-	CellInstancedMesh->ClearInstances();
-	PathInstancedMesh->ClearInstances();
-	HighlightInstancedMesh->ClearInstances();
-	RuntimeSpecialCases.Empty();
-	RuntimeSpecialPaths.Empty();
 }
 
 void AGridManager::BuildSpecialCases() {
@@ -217,6 +201,27 @@ void AGridManager::BuildPaths() {
 			PathInstancedMesh->AddInstance(InstanceTransform);
 		}
 	}
+}
+
+void AGridManager::ClearGrid() {
+
+	for (auto& Pair : RuntimeSpecialPaths) {
+		if (IsValid(Pair.Value)) {
+			Pair.Value->DestroyComponent();
+		}
+	}
+
+	for (auto& Pair : RuntimeSpecialCases) {
+		if (IsValid(Pair.Value)) {
+			Pair.Value->DestroyComponent();
+		}
+	}
+
+	CellInstancedMesh->ClearInstances();
+	PathInstancedMesh->ClearInstances();
+	HighlightInstancedMesh->ClearInstances();
+	RuntimeSpecialCases.Empty();
+	RuntimeSpecialPaths.Empty();
 }
 
 #if WITH_EDITOR

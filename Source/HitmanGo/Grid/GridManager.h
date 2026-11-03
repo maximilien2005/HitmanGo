@@ -37,8 +37,12 @@ private:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
+	void BuildUsedCellInstances();
 	void BuildSpecialCases();
 	void BuildPaths();
+	AMasterPawn* SpawnPawnOnGrid(TSubclassOf<AMasterPawn> PawnClass, FIntVector2 CellCoords, EGridDirection Direction);
+	void SpawnPlayer();
+	void SpawnEnemies();
 
 	void ClearGrid();
 
