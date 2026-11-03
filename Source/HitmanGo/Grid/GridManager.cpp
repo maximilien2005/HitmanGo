@@ -90,7 +90,8 @@ void AGridManager::OnConstruction(const FTransform& Transform) {
 	for (int coord_x = 0; coord_x < GridData->MapSize.X; coord_x++) {
 		for (int coord_y = 0; coord_y < GridData->MapSize.Y; coord_y++) {
 			FIntVector2 CurrentPos(coord_x, coord_y);
-			FVector InstanceLocation(coord_x * EspaceCells, coord_y * EspaceCells, 0.0f);
+			
+			FVector InstanceLocation = GridToLocalLocation(CurrentPos);
 			FTransform InstanceTransform(InstanceLocation);
 
 			if (!GridData->listSpecialCase.Contains(CurrentPos)) {
@@ -103,7 +104,7 @@ void AGridManager::OnConstruction(const FTransform& Transform) {
 					continue;
 				}
 				TextRender->CreationMethod = EComponentCreationMethod::UserConstructionScript;
-				TextRender->SetupAttachment(RootComponent);
+				TextRender->SetupAttachment(Cells);
 				TextRender->RegisterComponent();
 				TextPool.Add(TextRender);
 
@@ -132,10 +133,10 @@ void AGridManager::OnConstruction(const FTransform& Transform) {
 		}
 
 		NewComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
-		NewComp->SetupAttachment(RootComponent);
+		NewComp->SetupAttachment(Cells);
 		NewComp->GridManagerRef = this;
 
-		FVector InstanceLocation(ConfigPair.Key.X * EspaceCells, ConfigPair.Key.Y * EspaceCells, 0.0f);
+		FVector InstanceLocation = GridToLocalLocation(ConfigPair.Key);
 		NewComp->SetRelativeLocation(InstanceLocation);
 
 		NewComp->RegisterComponent();
@@ -160,7 +161,7 @@ void AGridManager::OnConstruction(const FTransform& Transform) {
 			}
 
 			NewPathComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
-			NewPathComp->SetupAttachment(RootComponent);
+			NewPathComp->SetupAttachment(Paths);
 			NewPathComp->GridManagerRef = this;
 			NewPathComp->PathCoordinates = ChainDataPair.Key;
 			NewPathComp->GridCellPositionA = ChainDataPair.Value.GridCellPositionA;
@@ -214,7 +215,7 @@ void AGridManager::BeginPlay() {
 		CellInstancedMesh->ClearInstances();
 		for (const FIntVector2& CellPos : UsedCells) {
 			if (!GridData->listSpecialCase.Contains(CellPos)) {
-				FVector InstanceLocation(CellPos.X * EspaceCells, CellPos.Y * EspaceCells, 0.0f);
+				FVector InstanceLocation = GridToLocalLocation(CellPos);
 				CellInstancedMesh->AddInstance(FTransform(InstanceLocation));
 			}
 		}
@@ -347,7 +348,7 @@ bool AGridManager::WorldToGridLocation(FVector WorldLocation, FIntVector2& OutCe
 	int32 ClosestX = FMath::RoundToInt(LocalLocation.X / EspaceCells);
 	int32 ClosestY = FMath::RoundToInt(LocalLocation.Y / EspaceCells);
 
-	FVector CellCenterLocal(ClosestX * EspaceCells, ClosestY * EspaceCells, 0.0f);
+	FVector CellCenterLocal = GridToLocalLocation(FIntVector2(ClosestX, ClosestY));
 	float Distance2D = FVector::Dist2D(LocalLocation, CellCenterLocal);
 
 	if (Distance2D <= MaxDistanceTolerance) {
@@ -550,7 +551,8 @@ void AGridManager::ShowCellHighlights(const TArray<FIntVector2>& CellsToHighligh
 	HighlightInstancedMesh->ClearInstances();
 
 	for (const FIntVector2& CellPos : CellsToHighlight) {
-		FVector LocalPos(CellPos.X * EspaceCells, CellPos.Y * EspaceCells, 2.0f);
+		FVector LocalPos = GridToLocalLocation(CellPos);
+		LocalPos.Z += 2.0f;
 		HighlightInstancedMesh->AddInstance(FTransform(LocalPos));
 	}
 }
