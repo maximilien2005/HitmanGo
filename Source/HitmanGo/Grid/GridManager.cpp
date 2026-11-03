@@ -5,22 +5,41 @@
 
 AGridManager::AGridManager() {
 	PrimaryActorTick.bCanEverTick = false;
-	PrimaryActorTick.bStartWithTickEnabled = false;
+
+	// Main Root Component is the board
+	Board = CreateDefaultSubobject<USceneComponent>(TEXT("Board"));
+	SetRootComponent(Board);
+
+	Cells = CreateDefaultSubobject<USceneComponent>(TEXT("Cells")); // Hold all the cell instances
+	Cells->SetupAttachment(Board);
+
+	Paths = CreateDefaultSubobject<USceneComponent>(TEXT("Paths")); // Hold all the path instances
+	Paths->SetupAttachment(Board);
 
 	CellInstancedMesh = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("CellInstancedMesh"));
-	SetRootComponent(CellInstancedMesh);
+	CellInstancedMesh->SetupAttachment(Cells);
 
 	PathInstancedMesh = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("PathInstancedMesh"));
-	PathInstancedMesh->SetupAttachment(RootComponent);
+	PathInstancedMesh->SetupAttachment(Paths);
 
 	HighlightInstancedMesh = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("HighlightInstancedMesh"));
-	HighlightInstancedMesh->SetupAttachment(RootComponent);
+	HighlightInstancedMesh->SetupAttachment(Cells);
 	HighlightInstancedMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 #if WITH_EDITORONLY_DATA
-	PlayerPreviewComponent = CreateEditorOnlyDefaultSubobject<UChildActorComponent>(TEXT("PlayerPreviewComponent"));
-	if (IsValid(PlayerPreviewComponent)) {
-		PlayerPreviewComponent->SetupAttachment(RootComponent);
+	Previews = CreateDefaultSubobject<USceneComponent>(TEXT("Previews")); // Hold all the preview components (player and enemies)
+	if (IsValid(Previews)) {
+		Previews->SetupAttachment(Board);
+	}
+
+	EnemiesPreview = CreateDefaultSubobject<USceneComponent>(TEXT("EnemiesPreview")); // Hold all the enemy preview components
+	if (IsValid(EnemiesPreview)) {
+		EnemiesPreview->SetupAttachment(Previews);
+	}
+
+	PlayersPreview = CreateDefaultSubobject<USceneComponent>(TEXT("PlayersPreview")); // Hold all the player preview components
+	if (IsValid(PlayersPreview)) {
+		PlayersPreview->SetupAttachment(Previews);
 	}
 #endif
 }
@@ -60,18 +79,7 @@ void AGridManager::OnConstruction(const FTransform& Transform) {
 	}
 	TextPool.Empty();
 
-	TArray<UChildActorComponent*> ExistingPreviews;
-	GetComponents<UChildActorComponent>(ExistingPreviews);
-	for (UChildActorComponent* Comp : ExistingPreviews) {
-		if (IsValid(Comp) && Comp != PlayerPreviewComponent) {
-			Comp->DestroyComponent();
-		}
-	}
-	EnemyPreviewPool.Empty();
-
-	if (IsValid(PlayerPreviewComponent)) {
-		PlayerPreviewComponent->SetChildActorClass(nullptr);
-	}
+	ClearGridPreview();
 #endif
 
 	if (!IsValid(GridData)) {
@@ -167,31 +175,10 @@ void AGridManager::OnConstruction(const FTransform& Transform) {
 		}
 	}
 
-#if WITH_EDITORONLY_DATA
-	if (IsValid(PlayerPreviewComponent) && !GetWorld()->IsGameWorld()) {
-		PlayerPreviewComponent->SetChildActorClass(GridData->PlayerClass);
-		PlayerPreviewComponent->SetRelativeLocation(FVector(GridData->PlayerStart.X * EspaceCells, GridData->PlayerStart.Y * EspaceCells, 0.0f));
-		PlayerPreviewComponent->SetRelativeRotation(DirectionToLocalRotation(GridData->PlayerStartDirection));
-	}
-
+#if WITH_EDITOR
 	if (!GetWorld()->IsGameWorld()) {
-		for (const TPair<FIntVector2, FEnemySpawnData>& EnemyPair : GridData->listEnemiesStart) {
-			if (!EnemyPair.Value.PawnClass) {
-				continue;
-			}
-
-			UChildActorComponent* PreviewComp = NewObject<UChildActorComponent>(this);
-			if (!ensure(IsValid(PreviewComp))) {
-				continue;
-			}
-			PreviewComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
-			PreviewComp->SetupAttachment(RootComponent);
-			PreviewComp->SetChildActorClass(EnemyPair.Value.PawnClass);
-			PreviewComp->SetRelativeLocation(FVector(EnemyPair.Key.X * EspaceCells, EnemyPair.Key.Y * EspaceCells, 0.0f));
-			PreviewComp->SetRelativeRotation(DirectionToLocalRotation(EnemyPair.Value.StartDirection));
-			PreviewComp->RegisterComponent();
-			EnemyPreviewPool.Add(PreviewComp);
-		}
+		BuildPlayerPreview();
+		BuildEnemiesPreview();
 	}
 #endif
 }
@@ -208,19 +195,9 @@ void AGridManager::BeginPlay() {
 			TextComp->DestroyComponent();
 		}
 	}
-
-	TArray<UChildActorComponent*> ChildActorComponents;
-	GetComponents<UChildActorComponent>(ChildActorComponents);
-	for (UChildActorComponent* Comp : ChildActorComponents) {
-		if (IsValid(Comp)) {
-			Comp->SetChildActorClass(nullptr);
-			Comp->DestroyComponent();
-		}
-	}
-
-#if WITH_EDITORONLY_DATA
-	TextPool.Empty();
-	EnemyPreviewPool.Empty();
+	
+#if WITH_EDITOR
+	ClearGridPreview();
 #endif
 
 	if (!ensure(IsValid(GridData))) {
@@ -279,6 +256,69 @@ void AGridManager::BeginPlay() {
 	}
 }
 
+#if WITH_EDITOR
+void AGridManager::ClearGridPreview() {
+	ClearPreviewGroup(PlayersPreview);
+	ClearPreviewGroup(EnemiesPreview);
+}
+
+void AGridManager::ClearPreviewGroup(USceneComponent* ParentGroup) {
+	if (!IsValid(ParentGroup)) {
+		return;
+	}
+
+	TArray<USceneComponent*> Childs;
+	ParentGroup->GetChildrenComponents(false, Childs);
+
+	for (USceneComponent* Child : Childs) {
+		if (UChildActorComponent* PreviewComp = Cast<UChildActorComponent>(Child)) {
+			if (IsValid(PreviewComp)) {
+				PreviewComp->DestroyComponent();
+			}
+		}
+	}
+}
+
+
+UChildActorComponent* AGridManager::CreatePawnPreview(USceneComponent* ParentGroup, TSubclassOf<AMasterPawn> PawnClass, FIntVector2 CellCoords, EGridDirection Direction) {
+	if (!IsValid(ParentGroup) || !IsValid(PawnClass)) {
+		return nullptr;
+	}
+
+	UChildActorComponent* PreviewComp = NewObject<UChildActorComponent>(this);
+	PreviewComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
+	PreviewComp->SetupAttachment(ParentGroup);
+	PreviewComp->SetChildActorClass(PawnClass);
+	PreviewComp->SetRelativeLocation(GridToLocalLocation(CellCoords));
+	PreviewComp->SetRelativeRotation(DirectionToLocalRotation(Direction));
+	PreviewComp->RegisterComponent();
+
+	return PreviewComp;
+}
+
+void AGridManager::BuildPlayerPreview() {
+	if (!IsValid(GridData)) {
+		return;
+	}
+	CreatePawnPreview(PlayersPreview, GridData->PlayerClass, GridData->PlayerStart, GridData->PlayerStartDirection);
+}
+
+void AGridManager::BuildEnemiesPreview() {
+	if (!IsValid(GridData)) {
+		return;
+	}
+
+	for (const TPair<FIntVector2, FEnemySpawnData>& EnemyPair : GridData->listEnemiesStart) {
+		if (EnemyPair.Value.PawnClass == nullptr) {
+			continue;
+		}
+
+		CreatePawnPreview(EnemiesPreview, EnemyPair.Value.PawnClass, EnemyPair.Key, EnemyPair.Value.StartDirection);
+	}
+}
+
+#endif
+
 FVector2D AGridManager::GetPathCoordsKey(FIntVector2 GridCellPositionA, FIntVector2 GridCellPositionB) const {
 	if (IsValid(GridData)) {
 		return GridData->GetPathCoordsKey(GridCellPositionA, GridCellPositionB);
@@ -290,8 +330,12 @@ FVector2D AGridManager::GetPathCoordsKey(FIntVector2 GridCellPositionA, FIntVect
 }
 
 FVector AGridManager::GridToWorldLocation(FIntVector2 CellCoords) const {
+	return GetActorTransform().TransformPosition(GridToLocalLocation(CellCoords));
+}
+
+FVector AGridManager::GridToLocalLocation(FIntVector2 CellCoords) const {
 	FVector LocalLocation(CellCoords.X * EspaceCells, CellCoords.Y * EspaceCells, 0.0f);
-	return GetActorTransform().TransformPosition(LocalLocation);
+	return LocalLocation;
 }
 
 bool AGridManager::WorldToGridLocation(FVector WorldLocation, FIntVector2& OutCellCoords, float MaxDistanceTolerance) const {

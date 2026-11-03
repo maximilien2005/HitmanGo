@@ -10,14 +10,14 @@
     <Platform Name="Win64-arm64ec" />
   </Configurations>
   <Folder Name="/Engine/">
-    <Project Path="Intermediate/ProjectFiles/UE5.vcxproj" Id="80110de4-614e-30e8-b7d6-a02753da15b5">
+    <Project Path="Intermediate/ProjectFiles/UE5.vcxproj" Id="5157fd09-253b-379a-a9e1-7206c8006455">
       <BuildType Project="BuiltWithUnrealBuildTool" />
       <Platform Project="Win64" />
       <Build Project="false" />
     </Project>
   </Folder>
   <Folder Name="/Games/">
-    <Project Path="Intermediate/ProjectFiles/HitmanGo.vcxproj" Id="171b157c-5724-3f09-bfca-d391d30cae01">
+    <Project Path="Intermediate/ProjectFiles/HitmanGo.vcxproj" Id="d1024685-70ab-3cf9-9d73-05bc71a65a95">
       <BuildType Solution="DebugGame Editor|Win64" Project="DebugGame_Editor" />
       <BuildType Solution="DebugGame Editor|Win64-arm64" Project="Win64_arm64_DebugGame_Editor" />
       <BuildType Solution="DebugGame Editor|Win64-arm64ec" Project="Win64_arm64ec_DebugGame_Editor" />

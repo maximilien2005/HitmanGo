@@ -7,6 +7,7 @@
 #include "GridManager.generated.h"
 
 class AMasterPawn;
+class UChildActorComponent;
 
 UCLASS()
 class HITMANGO_API AGridManager : public AActor {
@@ -16,6 +17,13 @@ public:
 	AGridManager();
 
 protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USceneComponent* Board;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USceneComponent* Cells;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USceneComponent* Paths;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UInstancedStaticMeshComponent* CellInstancedMesh;
 
@@ -28,6 +36,14 @@ protected:
 private:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
+
+#if WITH_EDITOR
+	UChildActorComponent* CreatePawnPreview(USceneComponent* ParentGroup, TSubclassOf<AMasterPawn> PawnClass, FIntVector2 CellCoords, EGridDirection Direction);
+	void BuildPlayerPreview();
+	void BuildEnemiesPreview();
+	void ClearGridPreview();
+	void ClearPreviewGroup(USceneComponent* ParentGroup);
+#endif
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Editable | MapParameters")
@@ -82,6 +98,9 @@ public:
 	FVector GridToWorldLocation(FIntVector2 CellCoords) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Grid")
+	FVector GridToLocalLocation(FIntVector2 CellCoords) const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Grid")
 	bool WorldToGridLocation(FVector WorldLocation, FIntVector2& OutCellCoords, float MaxDistanceTolerance = 75.0f) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Grid Visuals")
@@ -97,14 +116,15 @@ public:
 	void TriggerPath(FVector2D PathCoords, AActor* TargetActor);
 
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(VisibleAnywhere, Category = "Components")
-	class UChildActorComponent* PlayerPreviewComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USceneComponent* Previews;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USceneComponent* PlayersPreview;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USceneComponent* EnemiesPreview;
 
 	UPROPERTY(Transient)
 	TArray<class UTextRenderComponent*> TextPool;
-
-	UPROPERTY(Transient)
-	TArray<class UChildActorComponent*> EnemyPreviewPool;
 
 	UPROPERTY(EditAnywhere, Category = "Editable | Debug")
 	bool bLookCoords = false;
