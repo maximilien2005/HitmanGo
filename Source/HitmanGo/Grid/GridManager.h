@@ -95,6 +95,9 @@ public:
 	static EGridDirection GetOppositeDirection(EGridDirection Direction);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Grid | Direction")
+	static FIntVector2 DirectionToOffset(EGridDirection Direction);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Grid | Direction")
 	static FRotator DirectionToLocalRotation(EGridDirection Direction);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Grid | Direction")

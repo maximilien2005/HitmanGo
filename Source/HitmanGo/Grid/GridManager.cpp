@@ -390,7 +390,7 @@ UMainPathComponent* AGridManager::GetSpecialPathBetween(FIntVector2 CellA, FIntV
 }
 
 bool AGridManager::CanMoveBetweenCells(FIntVector2 StartCell, FIntVector2 TargetCell, AActor* MovingActor) const {
-	if (!ensure(IsValid(GridData)) || StartCell == TargetCell) {
+	if (!IsValid(GridData) || StartCell == TargetCell) {
 		return false;
 	}
 
@@ -421,29 +421,15 @@ bool AGridManager::CanMoveBetweenCells(FIntVector2 StartCell, FIntVector2 Target
 
 TArray<FIntVector2> AGridManager::GetConnectedCells(FIntVector2 PositionCheck, AActor* MovingActor) const {
 	TArray<FIntVector2> OutConnectedCells;
+
 	if (!ensure(IsValid(GridData))) {
 		return OutConnectedCells;
 	}
 
-	for (const TPair<FVector2D, FChemainStruct>& ChainDataPair : GridData->listChemainData) {
-		FIntVector2 TargetCell;
-		bool bIsConnected = false;
-
-		if (ChainDataPair.Value.GridCellPositionA == PositionCheck) {
-			TargetCell = ChainDataPair.Value.GridCellPositionB;
-			bIsConnected = true;
-		}
-		else if (ChainDataPair.Value.GridCellPositionB == PositionCheck) {
-			TargetCell = ChainDataPair.Value.GridCellPositionA;
-			bIsConnected = true;
-		}
-
-		if (!bIsConnected) {
-			continue;
-		}
-
-		if (CanMoveBetweenCells(PositionCheck, TargetCell, MovingActor)) {
-			OutConnectedCells.AddUnique(TargetCell);
+	for (EGridDirection Direction : {EGridDirection::North, EGridDirection::East, EGridDirection::South, EGridDirection::West}) {
+		FIntVector2 AdjacentCell;
+		if (CanMoveInDirection(PositionCheck, Direction, MovingActor, AdjacentCell)) {
+			OutConnectedCells.Add(AdjacentCell);
 		}
 	}
 	return OutConnectedCells;
@@ -477,37 +463,28 @@ bool AGridManager::GetDirectionBetweenCells(FIntVector2 StartCell, FIntVector2 T
 }
 
 bool AGridManager::CanMoveInDirection(FIntVector2 StartCell, EGridDirection Direction, AActor* MovingActor, FIntVector2& OutTargetCell) const {
-	if (!ensure(IsValid(GridData))) {
-		return false;
+	FIntVector2 CandidateCell = StartCell + DirectionToOffset(Direction);
+
+	if (CanMoveBetweenCells(StartCell, CandidateCell, MovingActor)) {
+		OutTargetCell = CandidateCell;
+		return true;
 	}
-
-	for (const TPair<FVector2D, FChemainStruct>& ChainDataPair : GridData->listChemainData) {
-		FIntVector2 CandidateCell;
-		bool bIsConnected = false;
-
-		if (ChainDataPair.Value.GridCellPositionA == StartCell) {
-			CandidateCell = ChainDataPair.Value.GridCellPositionB;
-			bIsConnected = true;
-		}
-		else if (ChainDataPair.Value.GridCellPositionB == StartCell) {
-			CandidateCell = ChainDataPair.Value.GridCellPositionA;
-			bIsConnected = true;
-		}
-
-		if (!bIsConnected) {
-			continue;
-		}
-
-		EGridDirection PathDirection;
-		if (GetDirectionBetweenCells(StartCell, CandidateCell, PathDirection) && PathDirection == Direction) {
-			if (CanMoveBetweenCells(StartCell, CandidateCell, MovingActor)) {
-				OutTargetCell = CandidateCell;
-				return true;
-			}
-		}
-	}
-
 	return false;
+}
+
+FIntVector2 AGridManager::DirectionToOffset(EGridDirection Direction) {
+	switch (Direction) {
+	case EGridDirection::North:
+		return FIntVector2(1, 0);
+	case EGridDirection::East:
+		return FIntVector2(0, 1);
+	case EGridDirection::South:
+		return FIntVector2(-1, 0);
+	case EGridDirection::West:
+		return FIntVector2(0, -1);
+	default:
+		return FIntVector2(0, 0);
+	}
 }
 
 EGridDirection AGridManager::GetOppositeDirection(EGridDirection Direction) {
