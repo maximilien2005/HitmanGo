@@ -51,132 +51,22 @@ void AGridManager::OnConstruction(const FTransform& Transform) {
 		return;
 	}
 
-	for (auto& Pair : RuntimeSpecialPaths) {
-		if (IsValid(Pair.Value)) {
-			Pair.Value->DestroyComponent();
-		}
-	}
-
-	for (auto& Pair : RuntimeSpecialCases) {
-		if (IsValid(Pair.Value)) {
-			Pair.Value->DestroyComponent();
-		}
-	}
-
-	CellInstancedMesh->ClearInstances();
-	PathInstancedMesh->ClearInstances();
-	HighlightInstancedMesh->ClearInstances();
-	RuntimeSpecialCases.Empty();
-	RuntimeSpecialPaths.Empty();
-
-#if WITH_EDITORONLY_DATA
-	TArray<UTextRenderComponent*> ExistingTexts;
-	GetComponents<UTextRenderComponent>(ExistingTexts);
-	for (UTextRenderComponent* TextComp : ExistingTexts) {
-		if (IsValid(TextComp)) {
-			TextComp->DestroyComponent();
-		}
-	}
-	TextPool.Empty();
-
-	ClearGridPreview();
+	ClearGrid();
+#if WITH_EDITOR
+	ClearEditorVisuals();
 #endif
 
 	if (!IsValid(GridData)) {
 		return;
 	}
 
-#if WITH_EDITOR
-	for (int coord_x = 0; coord_x < GridData->MapSize.X; coord_x++) {
-		for (int coord_y = 0; coord_y < GridData->MapSize.Y; coord_y++) {
-			FIntVector2 CurrentPos(coord_x, coord_y);
-			
-			FVector InstanceLocation = GridToLocalLocation(CurrentPos);
-			FTransform InstanceTransform(InstanceLocation);
-
-			if (!GridData->listSpecialCase.Contains(CurrentPos)) {
-				CellInstancedMesh->AddInstance(InstanceTransform);
-			}
-
-			if (bLookCoords) {
-				UTextRenderComponent* TextRender = NewObject<UTextRenderComponent>(this);
-				if (!ensure(IsValid(TextRender))) {
-					continue;
-				}
-				TextRender->CreationMethod = EComponentCreationMethod::UserConstructionScript;
-				TextRender->SetupAttachment(Cells);
-				TextRender->RegisterComponent();
-				TextPool.Add(TextRender);
-
-				TextRender->SetVisibility(true);
-				TextRender->SetRelativeLocation(InstanceLocation + FVector(0.0f, 0.0f, 5.0f));
-				TextRender->SetRelativeRotation(FRotator(90.0f, 180.0f, 0.0f));
-				TextRender->SetRelativeScale3D(FVector(2.0f, 2.0f, 2.0f));
-				TextRender->SetHorizontalAlignment(EHTA_Center);
-				TextRender->SetVerticalAlignment(EVRTA_TextCenter);
-				TextRender->SetText(FText::FromString(FString::Printf(TEXT("(%d, %d)"), coord_x, coord_y)));
-				TextRender->SetTextRenderColor(FColor(0, 0, 0, 255));
-			}
-		}
-	}
-#endif
-
-	for (const TPair<FIntVector2, FSpecialCaseConfig>& ConfigPair : GridData->listSpecialCase) {
-		TSubclassOf<UMainCaseComponent> CellClass = ConfigPair.Value.CaseClass;
-		if (!CellClass) {
-			continue;
-		}
-
-		UMainCaseComponent* NewComp = NewObject<UMainCaseComponent>(this, CellClass);
-		if (!ensure(IsValid(NewComp))) {
-			continue;
-		}
-
-		NewComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
-		NewComp->SetupAttachment(Cells);
-		NewComp->GridManagerRef = this;
-
-		FVector InstanceLocation = GridToLocalLocation(ConfigPair.Key);
-		NewComp->SetRelativeLocation(InstanceLocation);
-
-		NewComp->RegisterComponent();
-		RuntimeSpecialCases.Add(ConfigPair.Key, NewComp);
-	}
-
-	for (const TPair<FVector2D, FChemainStruct>& ChainDataPair : GridData->listChemainData) {
-		FVector InstanceLocation(ChainDataPair.Key.X * EspaceCells, ChainDataPair.Key.Y * EspaceCells, 0.0f);
-
-		FRotator InstanceRotation = FRotator::ZeroRotator;
-		if (ChainDataPair.Value.GridCellPositionA.Y == ChainDataPair.Value.GridCellPositionB.Y) {
-			InstanceRotation = FRotator(0.0f, 90.0f, 0.0f);
-		}
-
-		FTransform InstanceTransform(InstanceRotation, InstanceLocation, FVector(1.0f));
-		TSubclassOf<UMainPathComponent> PathClass = ChainDataPair.Value.SpecialPathClass;
-
-		if (PathClass) {
-			UMainPathComponent* NewPathComp = NewObject<UMainPathComponent>(this, PathClass);
-			if (!ensure(IsValid(NewPathComp))) {
-				continue;
-			}
-
-			NewPathComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
-			NewPathComp->SetupAttachment(Paths);
-			NewPathComp->GridManagerRef = this;
-			NewPathComp->PathCoordinates = ChainDataPair.Key;
-			NewPathComp->GridCellPositionA = ChainDataPair.Value.GridCellPositionA;
-			NewPathComp->GridCellPositionB = ChainDataPair.Value.GridCellPositionB;
-			NewPathComp->SetRelativeTransform(InstanceTransform);
-
-			NewPathComp->RegisterComponent();
-			RuntimeSpecialPaths.Add(ChainDataPair.Key, NewPathComp);
-		}
-		else {
-			PathInstancedMesh->AddInstance(InstanceTransform);
-		}
-	}
+	BuildSpecialCases();
+	BuildPaths();
 
 #if WITH_EDITOR
+	BuildCellInstances();
+	BuildDebugTexts();
+
 	if (!GetWorld()->IsGameWorld()) {
 		BuildPlayerPreview();
 		BuildEnemiesPreview();
@@ -188,17 +78,9 @@ void AGridManager::BeginPlay() {
 	Super::BeginPlay();
 
 	ClearCellHighlights();
-
-	TArray<UTextRenderComponent*> TextComponents;
-	GetComponents<UTextRenderComponent>(TextComponents);
-	for (UTextRenderComponent* TextComp : TextComponents) {
-		if (IsValid(TextComp)) {
-			TextComp->DestroyComponent();
-		}
-	}
 	
 #if WITH_EDITOR
-	ClearGridPreview();
+	ClearEditorVisuals();
 #endif
 
 	if (!ensure(IsValid(GridData))) {
@@ -257,8 +139,106 @@ void AGridManager::BeginPlay() {
 	}
 }
 
+void AGridManager::ClearGrid() {
+
+	for (auto& Pair : RuntimeSpecialPaths) {
+		if (IsValid(Pair.Value)) {
+			Pair.Value->DestroyComponent();
+		}
+	}
+
+	for (auto& Pair : RuntimeSpecialCases) {
+		if (IsValid(Pair.Value)) {
+			Pair.Value->DestroyComponent();
+		}
+	}
+
+	CellInstancedMesh->ClearInstances();
+	PathInstancedMesh->ClearInstances();
+	HighlightInstancedMesh->ClearInstances();
+	RuntimeSpecialCases.Empty();
+	RuntimeSpecialPaths.Empty();
+}
+
+void AGridManager::BuildSpecialCases() {
+	for (const TPair<FIntVector2, FSpecialCaseConfig>& ConfigPair : GridData->listSpecialCase) {
+		TSubclassOf<UMainCaseComponent> CellClass = ConfigPair.Value.CaseClass;
+		if (!CellClass) {
+			continue;
+		}
+
+		UMainCaseComponent* NewComp = NewObject<UMainCaseComponent>(this, CellClass);
+		if (!ensure(IsValid(NewComp))) {
+			continue;
+		}
+
+		NewComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
+		NewComp->SetupAttachment(Cells);
+		NewComp->GridManagerRef = this;
+
+		FVector InstanceLocation = GridToLocalLocation(ConfigPair.Key);
+		NewComp->SetRelativeLocation(InstanceLocation);
+
+		NewComp->RegisterComponent();
+		RuntimeSpecialCases.Add(ConfigPair.Key, NewComp);
+	}
+}
+
+void AGridManager::BuildPaths() {
+	for (const TPair<FVector2D, FChemainStruct>& ChainDataPair : GridData->listChemainData) {
+		FVector InstanceLocation(ChainDataPair.Key.X * EspaceCells, ChainDataPair.Key.Y * EspaceCells, 0.0f);
+
+		FRotator InstanceRotation = FRotator::ZeroRotator;
+		if (ChainDataPair.Value.GridCellPositionA.Y == ChainDataPair.Value.GridCellPositionB.Y) {
+			InstanceRotation = FRotator(0.0f, 90.0f, 0.0f);
+		}
+
+		FTransform InstanceTransform(InstanceRotation, InstanceLocation, FVector(1.0f));
+		TSubclassOf<UMainPathComponent> PathClass = ChainDataPair.Value.SpecialPathClass;
+
+		if (PathClass) {
+			UMainPathComponent* NewPathComp = NewObject<UMainPathComponent>(this, PathClass);
+			if (!ensure(IsValid(NewPathComp))) {
+				continue;
+			}
+
+			NewPathComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
+			NewPathComp->SetupAttachment(Paths);
+			NewPathComp->GridManagerRef = this;
+			NewPathComp->PathCoordinates = ChainDataPair.Key;
+			NewPathComp->GridCellPositionA = ChainDataPair.Value.GridCellPositionA;
+			NewPathComp->GridCellPositionB = ChainDataPair.Value.GridCellPositionB;
+			NewPathComp->SetRelativeTransform(InstanceTransform);
+
+			NewPathComp->RegisterComponent();
+			RuntimeSpecialPaths.Add(ChainDataPair.Key, NewPathComp);
+		}
+		else {
+			PathInstancedMesh->AddInstance(InstanceTransform);
+		}
+	}
+}
+
 #if WITH_EDITOR
-void AGridManager::ClearGridPreview() {
+void AGridManager::ClearDebugTexts() {
+	if (!IsValid(Cells)) {
+		return;
+	}
+
+	TArray<USceneComponent*> ExistingTexts;
+	Cells->GetChildrenComponents(false, ExistingTexts);
+
+	for (USceneComponent* TextComp : ExistingTexts) {
+		if (UTextRenderComponent* TextRenderComp = Cast<UTextRenderComponent>(TextComp)) {
+			if (IsValid(TextRenderComp)) {
+				TextRenderComp->DestroyComponent();
+			}
+		}
+	}
+}
+
+void AGridManager::ClearEditorVisuals() {
+	ClearDebugTexts();
 	ClearPreviewGroup(PlayersPreview);
 	ClearPreviewGroup(EnemiesPreview);
 }
@@ -268,18 +248,17 @@ void AGridManager::ClearPreviewGroup(USceneComponent* ParentGroup) {
 		return;
 	}
 
-	TArray<USceneComponent*> Childs;
-	ParentGroup->GetChildrenComponents(false, Childs);
+	TArray<USceneComponent*> ChildComponents;
+	ParentGroup->GetChildrenComponents(false, ChildComponents);
 
-	for (USceneComponent* Child : Childs) {
-		if (UChildActorComponent* PreviewComp = Cast<UChildActorComponent>(Child)) {
+	for (USceneComponent* ChildComp : ChildComponents) {
+		if (UChildActorComponent* PreviewComp = Cast<UChildActorComponent>(ChildComp)) {
 			if (IsValid(PreviewComp)) {
 				PreviewComp->DestroyComponent();
 			}
 		}
 	}
 }
-
 
 UChildActorComponent* AGridManager::CreatePawnPreview(USceneComponent* ParentGroup, TSubclassOf<AMasterPawn> PawnClass, FIntVector2 CellCoords, EGridDirection Direction) {
 	if (!IsValid(ParentGroup) || !IsValid(PawnClass)) {
@@ -298,17 +277,10 @@ UChildActorComponent* AGridManager::CreatePawnPreview(USceneComponent* ParentGro
 }
 
 void AGridManager::BuildPlayerPreview() {
-	if (!IsValid(GridData)) {
-		return;
-	}
 	CreatePawnPreview(PlayersPreview, GridData->PlayerClass, GridData->PlayerStart, GridData->PlayerStartDirection);
 }
 
 void AGridManager::BuildEnemiesPreview() {
-	if (!IsValid(GridData)) {
-		return;
-	}
-
 	for (const TPair<FIntVector2, FEnemySpawnData>& EnemyPair : GridData->listEnemiesStart) {
 		if (EnemyPair.Value.PawnClass == nullptr) {
 			continue;
@@ -318,6 +290,51 @@ void AGridManager::BuildEnemiesPreview() {
 	}
 }
 
+void AGridManager::BuildCellInstances() {
+	for (int coord_x = 0; coord_x < GridData->MapSize.X; coord_x++) {
+		for (int coord_y = 0; coord_y < GridData->MapSize.Y; coord_y++) {
+			FIntVector2 CurrentPos(coord_x, coord_y);
+
+			FVector InstanceLocation = GridToLocalLocation(CurrentPos);
+			FTransform InstanceTransform(InstanceLocation);
+
+			if (!GridData->listSpecialCase.Contains(CurrentPos)) {
+				CellInstancedMesh->AddInstance(InstanceTransform);
+			}
+		}
+	}
+}
+
+void AGridManager::BuildDebugTexts() {
+	if (!bLookCoords) {
+		return;
+	}
+
+	for (int coord_x = 0; coord_x < GridData->MapSize.X; coord_x++) {
+		for (int coord_y = 0; coord_y < GridData->MapSize.Y; coord_y++) {
+			FIntVector2 CurrentPos(coord_x, coord_y);
+
+			FVector InstanceLocation = GridToLocalLocation(CurrentPos);
+
+			UTextRenderComponent* TextRender = NewObject<UTextRenderComponent>(this);
+			if (!ensure(IsValid(TextRender))) {
+				continue;
+			}
+			TextRender->CreationMethod = EComponentCreationMethod::UserConstructionScript;
+			TextRender->SetupAttachment(Cells);
+			TextRender->RegisterComponent();
+
+			TextRender->SetVisibility(true);
+			TextRender->SetRelativeLocation(InstanceLocation + FVector(0.0f, 0.0f, 5.0f));
+			TextRender->SetRelativeRotation(FRotator(90.0f, 180.0f, 0.0f));
+			TextRender->SetRelativeScale3D(FVector(2.0f, 2.0f, 2.0f));
+			TextRender->SetHorizontalAlignment(EHTA_Center);
+			TextRender->SetVerticalAlignment(EVRTA_TextCenter);
+			TextRender->SetText(FText::FromString(FString::Printf(TEXT("(%d, %d)"), coord_x, coord_y)));
+			TextRender->SetTextRenderColor(FColor(0, 0, 0, 255));
+		}
+	}
+}
 #endif
 
 FVector2D AGridManager::GetPathCoordsKey(FIntVector2 GridCellPositionA, FIntVector2 GridCellPositionB) const {

@@ -37,12 +37,23 @@ private:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
+	void BuildSpecialCases();
+	void BuildPaths();
+
+	void ClearGrid();
+
+
 #if WITH_EDITOR
 	UChildActorComponent* CreatePawnPreview(USceneComponent* ParentGroup, TSubclassOf<AMasterPawn> PawnClass, FIntVector2 CellCoords, EGridDirection Direction);
 	void BuildPlayerPreview();
 	void BuildEnemiesPreview();
-	void ClearGridPreview();
+	void BuildCellInstances();
+	void BuildDebugTexts();
+
+
+	void ClearEditorVisuals();
 	void ClearPreviewGroup(USceneComponent* ParentGroup);
+	void ClearDebugTexts();
 #endif
 
 public:
@@ -122,9 +133,6 @@ public:
 	USceneComponent* PlayersPreview;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USceneComponent* EnemiesPreview;
-
-	UPROPERTY(Transient)
-	TArray<class UTextRenderComponent*> TextPool;
 
 	UPROPERTY(EditAnywhere, Category = "Editable | Debug")
 	bool bLookCoords = false;
