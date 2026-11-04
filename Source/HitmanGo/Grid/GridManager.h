@@ -38,6 +38,7 @@ private:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 	void BuildUsedCellInstances();
+	void AddCellInstance(FIntVector2 CellCoords);
 	void BuildSpecialCases();
 	void BuildPaths();
 	AMasterPawn* SpawnPawnOnGrid(TSubclassOf<AMasterPawn> PawnClass, FIntVector2 CellCoords, EGridDirection Direction);
@@ -45,6 +46,7 @@ private:
 	void SpawnEnemies();
 
 	void ClearGrid();
+
 
 
 #if WITH_EDITOR

@@ -93,6 +93,52 @@ void AGridManager::BeginPlay() {
 	SpawnEnemies();
 }
 
+void AGridManager::BuildUsedCellInstances() {
+	TArray<FIntVector2> UsedCells;
+	for (const TPair<FVector2D, FChemainStruct>& ChainDataPair : GridData->listChemainData) {
+		UsedCells.AddUnique(ChainDataPair.Value.GridCellPositionA);
+		UsedCells.AddUnique(ChainDataPair.Value.GridCellPositionB);
+	}
+
+	if (IsValid(CellInstancedMesh)) {
+		CellInstancedMesh->ClearInstances();
+		for (const FIntVector2& CellPos : UsedCells) {
+			AddCellInstance(CellPos);
+		}
+	}
+}
+
+void AGridManager::AddCellInstance(FIntVector2 CellCoords) {
+	if (!GridData->listSpecialCase.Contains(CellCoords)) {
+		FVector InstanceLocation = GridToLocalLocation(CellCoords);
+		CellInstancedMesh->AddInstance(FTransform(InstanceLocation));
+	}
+}
+
+void AGridManager::BuildSpecialCases() {
+	for (const TPair<FIntVector2, FSpecialCaseConfig>& ConfigPair : GridData->listSpecialCase) {
+		TSubclassOf<UMainCaseComponent> CellClass = ConfigPair.Value.CaseClass;
+		if (!CellClass) {
+			continue;
+		}
+
+		UMainCaseComponent* NewComp = NewObject<UMainCaseComponent>(this, CellClass);
+		if (!ensure(IsValid(NewComp))) {
+			continue;
+		}
+
+		NewComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
+		NewComp->SetupAttachment(Cells);
+		NewComp->GridManagerRef = this;
+
+		FVector InstanceLocation = GridToLocalLocation(ConfigPair.Key);
+		NewComp->SetRelativeLocation(InstanceLocation);
+
+		NewComp->RegisterComponent();
+		RuntimeSpecialCases.Add(ConfigPair.Key, NewComp);
+	}
+}
+
 AMasterPawn* AGridManager::SpawnPawnOnGrid(TSubclassOf<AMasterPawn> PawnClass, FIntVector2 CellCoords, EGridDirection Direction) {
 	UWorld* World = GetWorld();
 	if (!PawnClass || !World) {
@@ -123,48 +169,6 @@ void AGridManager::SpawnEnemies() {
 		if (IsValid(SpawnedEnemy)) {
 			ActiveEnemies.Add(SpawnedEnemy);
 		}
-	}
-}
-
-void AGridManager::BuildUsedCellInstances() {
-	TArray<FIntVector2> UsedCells;
-	for (const TPair<FVector2D, FChemainStruct>& ChainDataPair : GridData->listChemainData) {
-		UsedCells.AddUnique(ChainDataPair.Value.GridCellPositionA);
-		UsedCells.AddUnique(ChainDataPair.Value.GridCellPositionB);
-	}
-
-	if (IsValid(CellInstancedMesh)) {
-		CellInstancedMesh->ClearInstances();
-		for (const FIntVector2& CellPos : UsedCells) {
-			if (!GridData->listSpecialCase.Contains(CellPos)) {
-				FVector InstanceLocation = GridToLocalLocation(CellPos);
-				CellInstancedMesh->AddInstance(FTransform(InstanceLocation));
-			}
-		}
-	}
-}
-
-void AGridManager::BuildSpecialCases() {
-	for (const TPair<FIntVector2, FSpecialCaseConfig>& ConfigPair : GridData->listSpecialCase) {
-		TSubclassOf<UMainCaseComponent> CellClass = ConfigPair.Value.CaseClass;
-		if (!CellClass) {
-			continue;
-		}
-
-		UMainCaseComponent* NewComp = NewObject<UMainCaseComponent>(this, CellClass);
-		if (!ensure(IsValid(NewComp))) {
-			continue;
-		}
-
-		NewComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
-		NewComp->SetupAttachment(Cells);
-		NewComp->GridManagerRef = this;
-
-		FVector InstanceLocation = GridToLocalLocation(ConfigPair.Key);
-		NewComp->SetRelativeLocation(InstanceLocation);
-
-		NewComp->RegisterComponent();
-		RuntimeSpecialCases.Add(ConfigPair.Key, NewComp);
 	}
 }
 
@@ -298,14 +302,7 @@ void AGridManager::BuildEnemiesPreview() {
 void AGridManager::BuildCellInstances() {
 	for (int coord_x = 0; coord_x < GridData->MapSize.X; coord_x++) {
 		for (int coord_y = 0; coord_y < GridData->MapSize.Y; coord_y++) {
-			FIntVector2 CurrentPos(coord_x, coord_y);
-
-			FVector InstanceLocation = GridToLocalLocation(CurrentPos);
-			FTransform InstanceTransform(InstanceLocation);
-
-			if (!GridData->listSpecialCase.Contains(CurrentPos)) {
-				CellInstancedMesh->AddInstance(InstanceTransform);
-			}
+			AddCellInstance(FIntVector2(coord_x, coord_y));
 		}
 	}
 }
