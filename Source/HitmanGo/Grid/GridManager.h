@@ -79,6 +79,9 @@ public:
 	AMasterPawn* ActivePlayerPawn = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "MapParameters | Runtime")
+	AMasterPawn* ActiveHugoPawn = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "MapParameters | Runtime")
 	TArray<AMasterPawn*> ActiveEnemies;
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")

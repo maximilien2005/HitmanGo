@@ -7,6 +7,8 @@
 #include "GM_PlagueTaleGo.generated.h"
 
 class AMasterPawn;
+class AGridManager;
+class AGS_PlagueTaleGo;
 
 UCLASS()
 class HITMANGO_API AGM_PlagueTaleGo : public AGameModeBase
@@ -15,4 +17,31 @@ class HITMANGO_API AGM_PlagueTaleGo : public AGameModeBase
 	
 public:
 	void PossessPlayerPawn(AMasterPawn* PlayerPawn);
+
+	UFUNCTION(BlueprintCallable, Category = "Turn Management")
+	void OnPlayerMoveFinished();
+
+protected:
+	virtual void BeginPlay() override;
+
+private:
+	virtual void InitGameState() override;
+
+	void RunEnemiesTurn();
+	void OnEnemiesMoveFinished();
+
+	void RunHugoTurn();
+	void OnHugoMoveFinished();
+
+	void HandleDefeat(AMasterPawn* DefeatedPawn);
+	void HandleVictory();
+	bool IsPawnCaughtBy(AMasterPawn* FriendlyPawn, AMasterPawn* EnemyPawn) const;
+	bool IsPawnOnEnemyCell(AMasterPawn* FriendlyPawn) const;
+
+
+	UPROPERTY(Transient)
+	AGridManager* GridManager;
+
+	UPROPERTY(Transient)
+	AGS_PlagueTaleGo* PlagueGoGameState;
 };
