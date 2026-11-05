@@ -1,5 +1,6 @@
 #include "GridManager.h"
 #include "Pawns/MasterPawn.h"
+#include "GM_PlagueTaleGo.h"
 #include "Components/ChildActorComponent.h"
 #include "Components/TextRenderComponent.h"
 
@@ -160,6 +161,8 @@ AMasterPawn* AGridManager::SpawnPawnOnGrid(TSubclassOf<AMasterPawn> PawnClass, F
 
 void AGridManager::SpawnPlayer() {
 	ActivePlayerPawn = SpawnPawnOnGrid(GridData->PlayerClass, GridData->PlayerStart, GridData->PlayerStartDirection);
+
+	GetWorld()->GetAuthGameMode<AGM_PlagueTaleGo>()->PossessPlayerPawn(ActivePlayerPawn);
 }
 
 void AGridManager::SpawnEnemies() {
