@@ -23,10 +23,6 @@ void AGM_PlagueTaleGo::OnPlayerMoveFinished() {
 		return;
 	}
 
-	if (IsGameWon) {
-		IsGameWon = false;
-		return;
-	}
 	if (PlagueGoGameState->CurrentGamePhase == EGamePhase::PlayerTurn) {
 		PlagueGoGameState->SetNewGamePhase(EGamePhase::HugoTurn);
 		if (IsPawnOnEnemyCell(GridManager->ActivePlayerPawn)) {
@@ -39,15 +35,15 @@ void AGM_PlagueTaleGo::OnPlayerMoveFinished() {
 }
 
 void AGM_PlagueTaleGo::OnExitReached(AActor* Actor) {
-	if (!IsValid(Actor) || !ensure(IsValid(GridManager))) {
+	if (!IsValid(Actor) || !ensure(IsValid(GridManager)) || !ensure(IsValid(PlagueGoGameState))) {
 		return;
 	}
 
 	AMasterPawn* AllyPawn = Cast<AMasterPawn>(Actor);
 	const bool bIsPlayerPawn = (AllyPawn && AllyPawn == GridManager->ActivePlayerPawn);
 	if (bIsPlayerPawn) {
-		HandleVictory();
-		IsGameWon = true;
+		UE_LOG(LogTemp, Warning, TEXT("Exit reached ! You win !"));
+		GameOver();
 	}
 }
 
@@ -64,6 +60,11 @@ void AGM_PlagueTaleGo::InitGameState() {
 	Super::InitGameState();
 	PlagueGoGameState = GetGameState<AGS_PlagueTaleGo>();
 	ensure(IsValid(PlagueGoGameState));
+}
+
+void AGM_PlagueTaleGo::GameOver() {
+	PlagueGoGameState->SetNewGamePhase(EGamePhase::GameOver);
+	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));
 }
 
 void AGM_PlagueTaleGo::RunEnemiesTurn() {
@@ -113,12 +114,7 @@ void AGM_PlagueTaleGo::HandleDefeat(AMasterPawn* DefeatedPawn) {
 		return;
 	}
 	UE_LOG(LogTemp, Warning, TEXT("%s has been caught ! Game Over."), *DefeatedPawn->GetName());
-	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));
-}
-
-void AGM_PlagueTaleGo::HandleVictory() {
-	UE_LOG(LogTemp, Warning, TEXT("Exit reached ! You win !"));
-	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));
+	GameOver();
 }
 
 bool AGM_PlagueTaleGo::IsPawnCaughtBy(AMasterPawn* FriendlyPawn, AMasterPawn* EnemyPawn) const {

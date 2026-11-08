@@ -11,6 +11,7 @@ enum class EGamePhase : uint8 {
 	PlayerTurn  UMETA(DisplayName = "Player Turn"),
 	HugoTurn	UMETA(DisplayName = "Hugo Turn"),
 	EnemiesTurn UMETA(DisplayName = "Enemies Turn"),
+	GameOver	UMETA(DisplayName = "Game Over")
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGamePhaseChanged, EGamePhase, NewPhase);

@@ -29,6 +29,7 @@ protected:
 
 private:
 	virtual void InitGameState() override;
+	void GameOver();
 
 	void RunEnemiesTurn();
 	void OnEnemiesMoveFinished();
@@ -37,11 +38,8 @@ private:
 	void OnHugoMoveFinished();
 
 	void HandleDefeat(AMasterPawn* DefeatedPawn);
-	void HandleVictory();
 	bool IsPawnCaughtBy(AMasterPawn* FriendlyPawn, AMasterPawn* EnemyPawn) const;
 	bool IsPawnOnEnemyCell(AMasterPawn* FriendlyPawn) const;
-
-	bool IsGameWon = false;
 
 	UPROPERTY(Transient)
 	AGridManager* GridManager;
