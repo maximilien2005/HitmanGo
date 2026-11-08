@@ -21,6 +21,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turn Management")
 	void OnPlayerMoveFinished();
 
+	UFUNCTION(BlueprintCallable, Category = "Turn Management")
+	void OnExitReached(AActor* Actor);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -38,6 +41,7 @@ private:
 	bool IsPawnCaughtBy(AMasterPawn* FriendlyPawn, AMasterPawn* EnemyPawn) const;
 	bool IsPawnOnEnemyCell(AMasterPawn* FriendlyPawn) const;
 
+	bool IsGameWon = false;
 
 	UPROPERTY(Transient)
 	AGridManager* GridManager;

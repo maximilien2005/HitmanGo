@@ -23,6 +23,10 @@ void AGM_PlagueTaleGo::OnPlayerMoveFinished() {
 		return;
 	}
 
+	if (IsGameWon) {
+		IsGameWon = false;
+		return;
+	}
 	if (PlagueGoGameState->CurrentGamePhase == EGamePhase::PlayerTurn) {
 		PlagueGoGameState->SetNewGamePhase(EGamePhase::HugoTurn);
 		if (IsPawnOnEnemyCell(GridManager->ActivePlayerPawn)) {
@@ -31,6 +35,19 @@ void AGM_PlagueTaleGo::OnPlayerMoveFinished() {
 		else {
 			RunHugoTurn();
 		}
+	}
+}
+
+void AGM_PlagueTaleGo::OnExitReached(AActor* Actor) {
+	if (!IsValid(Actor) || !ensure(IsValid(GridManager))) {
+		return;
+	}
+
+	AMasterPawn* AllyPawn = Cast<AMasterPawn>(Actor);
+	const bool bIsPlayerPawn = (AllyPawn && AllyPawn == GridManager->ActivePlayerPawn);
+	if (bIsPlayerPawn) {
+		HandleVictory();
+		IsGameWon = true;
 	}
 }
 
