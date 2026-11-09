@@ -547,7 +547,7 @@ void AGridManager::ShowCellHighlights(const TArray<FIntVector2>& CellsToHighligh
 		return;
 	}
 
-	HighlightInstancedMesh->ClearInstances();
+	ClearCellHighlights();
 
 	for (const FIntVector2& CellPos : CellsToHighlight) {
 		FVector LocalPos = GridToLocalLocation(CellPos);
