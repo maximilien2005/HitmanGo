@@ -29,8 +29,6 @@ protected:
 private:
 	void OnClickStarted();
 
-	void ClearPawnSelection();
-
 	UPROPERTY(Transient)
 	AGridManager* GridManager;
 

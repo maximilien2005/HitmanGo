@@ -7,16 +7,16 @@
 #include "InputAction.h"
 #include "GS_PlagueTaleGo.h"
 #include "Pawns/MasterPawn.h"
+#include "GM_PlagueTaleGo.h"
 
 void  APC_PlagueTaleGo::BeginPlay() {
 	Super::BeginPlay();
 
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 	{
-		if (!ensure(IsValid(PlagueGoInputMapping))) {
-			return;
+		if (ensure(IsValid(PlagueGoInputMapping))) {
+			Subsystem->AddMappingContext(PlagueGoInputMapping, 0);
 		}
-		Subsystem->AddMappingContext(PlagueGoInputMapping, 0);
 	}
 
 	GridManager = Cast<AGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass()));
@@ -36,35 +36,34 @@ void APC_PlagueTaleGo::SetupInputComponent() {
 }
 
 void APC_PlagueTaleGo::OnClickStarted() {
-	UE_LOG(LogTemp, Warning, TEXT("Clic started !"));
-
 	AGS_PlagueTaleGo* GS = GetWorld()->GetGameState<AGS_PlagueTaleGo>();
-	if (!ensure(IsValid(GS)) || !ensure(IsValid(GridManager))) {
+	if (!ensure(IsValid(GS)) || !ensure(IsValid(GridManager)) || !ensure(IsValid(GridManager->ActivePlayerPawn))) {
 		return;
 	}
 
+	GridManager->ClearCellHighlights();
+
 	if (GS->CurrentGamePhase == EGamePhase::PlayerTurn) {
 		FHitResult HitResult;
-		GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
+		const bool bGotHit = GetHitResultUnderCursor(ECC_Visibility, false, HitResult);
 
 		if (HitResult.GetActor() == GridManager->ActivePlayerPawn) {
 			bIsPawnSelected = true;
 			GridManager->ShowCellHighlights(GridManager->GetConnectedCells(GridManager->ActivePlayerPawn->CurrentGridPosition, GridManager->ActivePlayerPawn));
 			return;
 		}
-		else {
-			ClearPawnSelection();
-			return;
-		}
-		
-		if (!bIsPawnSelected) {
-			ClearPawnSelection();
-			return;
+
+		if (bIsPawnSelected) {
+			FIntVector2 TargetCellCoords;
+			bool bIsValidCell = GridManager->WorldToGridLocation(HitResult.ImpactPoint, TargetCellCoords);
+			if(bGotHit && bIsValidCell && GridManager->ActivePlayerPawn->MoveToCell(TargetCellCoords)) {
+				AGM_PlagueTaleGo* GM = GetWorld()->GetAuthGameMode<AGM_PlagueTaleGo>();
+				if (!ensure(IsValid(GM))) {
+					return;
+				}
+				GM->OnPlayerMoveFinished();
+			}
 		}
 	}
-}
-
-void APC_PlagueTaleGo::ClearPawnSelection() {
 	bIsPawnSelected = false;
-	GridManager->ClearCellHighlights();
 }
