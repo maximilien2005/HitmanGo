@@ -1,5 +1,8 @@
 #include "GridManager.h"
 #include "Pawns/MasterPawn.h"
+#include "Pawns/PlayerPawn.h"
+#include "Pawns/EnemyPawn.h"
+#include "Pawns/HugoPawn.h"
 #include "GM_PlagueTaleGo.h"
 #include "Components/ChildActorComponent.h"
 #include "Components/TextRenderComponent.h"
@@ -160,7 +163,7 @@ AMasterPawn* AGridManager::SpawnPawnOnGrid(TSubclassOf<AMasterPawn> PawnClass, F
 }
 
 void AGridManager::SpawnPlayer() {
-	ActivePlayerPawn = SpawnPawnOnGrid(GridData->PlayerClass, GridData->PlayerStart, GridData->PlayerStartDirection);
+	ActivePlayerPawn = Cast<APlayerPawn>(SpawnPawnOnGrid(GridData->PlayerClass, GridData->PlayerStart, GridData->PlayerStartDirection));
 
 	GetWorld()->GetAuthGameMode<AGM_PlagueTaleGo>()->PossessPlayerPawn(ActivePlayerPawn);
 }
@@ -168,7 +171,7 @@ void AGridManager::SpawnPlayer() {
 void AGridManager::SpawnEnemies() {
 	ActiveEnemies.Empty();
 	for (const TPair<FIntVector2, FEnemySpawnData>& EnemyPair : GridData->listEnemiesStart) {
-		AMasterPawn* SpawnedEnemy = SpawnPawnOnGrid(EnemyPair.Value.PawnClass, EnemyPair.Key, EnemyPair.Value.StartDirection);
+		AEnemyPawn* SpawnedEnemy = Cast<AEnemyPawn>(SpawnPawnOnGrid(EnemyPair.Value.EnemyPawnClass, EnemyPair.Key, EnemyPair.Value.StartDirection));
 		if (IsValid(SpawnedEnemy)) {
 			ActiveEnemies.Add(SpawnedEnemy);
 		}
@@ -294,11 +297,11 @@ void AGridManager::BuildPlayerPreview() {
 
 void AGridManager::BuildEnemiesPreview() {
 	for (const TPair<FIntVector2, FEnemySpawnData>& EnemyPair : GridData->listEnemiesStart) {
-		if (EnemyPair.Value.PawnClass == nullptr) {
+		if (EnemyPair.Value.EnemyPawnClass == nullptr) {
 			continue;
 		}
 
-		CreatePawnPreview(EnemiesPreview, EnemyPair.Value.PawnClass, EnemyPair.Key, EnemyPair.Value.StartDirection);
+		CreatePawnPreview(EnemiesPreview, EnemyPair.Value.EnemyPawnClass, EnemyPair.Key, EnemyPair.Value.StartDirection);
 	}
 }
 

@@ -7,6 +7,9 @@
 #include "GridDataAsset.generated.h"
 
 class AMasterPawn;
+class APlayerPawn;
+class AEnemyPawn;
+class AHugoPawn;
 
 UENUM(BlueprintType)
 enum class EGridDirection : uint8 {
@@ -35,7 +38,7 @@ struct FEnemySpawnData {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AMasterPawn> PawnClass = nullptr;
+	TSubclassOf<AEnemyPawn> EnemyPawnClass = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EGridDirection StartDirection = EGridDirection::North;
@@ -61,7 +64,7 @@ public:
 	FIntVector2 MapSize = FIntVector2(5, 5);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MapParameters | Player")
-	TSubclassOf<AMasterPawn> PlayerClass;
+	TSubclassOf<APlayerPawn> PlayerClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MapParameters | Player")
 	FIntVector2 PlayerStart = FIntVector2(0, 0);

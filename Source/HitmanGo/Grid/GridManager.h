@@ -7,6 +7,9 @@
 #include "GridManager.generated.h"
 
 class AMasterPawn;
+class AEnemyPawn;
+class APlayerPawn;
+class AHugoPawn;
 class UChildActorComponent;
 
 UCLASS()
@@ -76,13 +79,13 @@ public:
 	TMap<FVector2D, UMainPathComponent*> RuntimeSpecialPaths;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "MapParameters | Runtime")
-	AMasterPawn* ActivePlayerPawn = nullptr;
+	APlayerPawn* ActivePlayerPawn = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "MapParameters | Runtime")
-	AMasterPawn* ActiveHugoPawn = nullptr;
+	AHugoPawn* ActiveHugoPawn = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "MapParameters | Runtime")
-	TArray<AMasterPawn*> ActiveEnemies;
+	TArray<AEnemyPawn*> ActiveEnemies;
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	TArray<FIntVector2> GetConnectedCells(FIntVector2 PositionCheck, AActor* MovingActor = nullptr) const;
