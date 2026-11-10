@@ -1,11 +1,41 @@
 #include "MasterPawn.h"
 #include "Grid/GridManager.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/CapsuleComponent.h"
 
 AMasterPawn::AMasterPawn() {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
-	PawnMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PawnMesh"));
-	SetRootComponent(PawnMesh);
+	PawnStaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PawnStaticMesh"));
+	SetRootComponent(PawnStaticMesh);
+
+	SelectionCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("SelectionCollision"));
+	SelectionCollision->SetupAttachment(PawnStaticMesh);
+	SelectionCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SelectionCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+	SelectionCollision->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+
+	BaseBottom = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BaseBottom"));
+	BaseBottom->SetupAttachment(PawnStaticMesh);
+	BaseBottom->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+	BaseBottom->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));
+	BaseBottom->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
+	BaseBottom->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	BaseTop = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BaseTop"));
+	BaseTop->SetupAttachment(PawnStaticMesh);
+	BaseTop->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
+	BaseTop->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));
+	BaseTop->SetRelativeScale3D(FVector(0.85f, 0.85f, 1.0f));
+	BaseTop->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	CharacterMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CharacterMesh"));
+	CharacterMesh->SetupAttachment(PawnStaticMesh);
+	CharacterMesh->SetRelativeLocation(FVector(0.0f, 0.0f, 6.0f));
+	CharacterMesh->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));
+	CharacterMesh->SetRelativeScale3D(FVector(0.55f, 0.55f, 0.55f));
+	CharacterMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AMasterPawn::BeginPlay() {
@@ -18,7 +48,7 @@ void AMasterPawn::InitializePawnOnGrid(FIntVector2 StartPosition, EGridDirection
 	SetFacingDirection(StartDirection);
 }
 
-void AMasterPawn::ExecutePawnTurn_Implementation() {}
+void AMasterPawn::ExecutePawnTurn() {}
 
 bool AMasterPawn::CanMoveToCell(FIntVector2 TargetCellCoords) const {
 	if (!ensure(IsValid(GridManagerRef))) {

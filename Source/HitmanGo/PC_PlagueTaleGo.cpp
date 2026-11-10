@@ -36,6 +36,7 @@ void APC_PlagueTaleGo::SetupInputComponent() {
 }
 
 void APC_PlagueTaleGo::OnClickStarted() {
+	UE_LOG(LogTemp, Log, TEXT("OnClickStarted"));
 	AGS_PlagueTaleGo* GS = GetWorld()->GetGameState<AGS_PlagueTaleGo>();
 	if (!ensure(IsValid(GS)) || !ensure(IsValid(GridManager)) || !ensure(IsValid(GridManager->ActivePlayerPawn))) {
 		return;
