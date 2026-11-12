@@ -44,32 +44,32 @@ void AMasterPawn::BeginPlay() {
 
 void AMasterPawn::InitializePawnOnGrid(FIntVector2 StartPosition, EGridDirection StartDirection, AGridManager* Manager) {
 	CurrentGridPosition = StartPosition;
-	GridManagerRef = Manager;
+	GridManager = Manager;
 	SetFacingDirection(StartDirection);
 }
 
 void AMasterPawn::ExecutePawnTurn() {}
 
 bool AMasterPawn::CanMoveToCell(FIntVector2 TargetCellCoords) const {
-	if (!ensure(IsValid(GridManagerRef))) {
+	if (!ensure(IsValid(GridManager))) {
 		return false;
 	}
-	return GridManagerRef->CanMoveBetweenCells(CurrentGridPosition, TargetCellCoords, const_cast<AMasterPawn*>(this));
+	return GridManager->CanMoveBetweenCells(CurrentGridPosition, TargetCellCoords, const_cast<AMasterPawn*>(this));
 }
 
 bool AMasterPawn::CanMoveInDirection(EGridDirection Direction, FIntVector2& OutTargetCell) const {
-	if (!ensure(IsValid(GridManagerRef))) {
+	if (!ensure(IsValid(GridManager))) {
 		return false;
 	}
-	return GridManagerRef->CanMoveInDirection(CurrentGridPosition, Direction, const_cast<AMasterPawn*>(this), OutTargetCell);
+	return GridManager->CanMoveInDirection(CurrentGridPosition, Direction, const_cast<AMasterPawn*>(this), OutTargetCell);
 }
 
 void AMasterPawn::SetFacingDirection(EGridDirection NewDirection) {
 	CurrentDirection = NewDirection;
-	if (!ensure(IsValid(GridManagerRef))) {
+	if (!ensure(IsValid(GridManager))) {
 		return;
 	}
-	SetActorRotation(GridManagerRef->DirectionToWorldRotation(NewDirection));
+	SetActorRotation(GridManager->DirectionToWorldRotation(NewDirection));
 }
 
 void AMasterPawn::TurnAround() {
@@ -77,32 +77,32 @@ void AMasterPawn::TurnAround() {
 }
 
 bool AMasterPawn::MoveToCell(FIntVector2 TargetCellCoords) {
-	if (!ensure(IsValid(GridManagerRef))) {
+	if (!ensure(IsValid(GridManager))) {
 		return false;
 	}
 
-	if (!GridManagerRef->CanMoveBetweenCells(CurrentGridPosition, TargetCellCoords, this)) {
+	if (!GridManager->CanMoveBetweenCells(CurrentGridPosition, TargetCellCoords, this)) {
 		return false;
 	}
 
 	EGridDirection MoveDirection;
-	if (GridManagerRef->GetDirectionBetweenCells(CurrentGridPosition, TargetCellCoords, MoveDirection)) {
+	if (GridManager->GetDirectionBetweenCells(CurrentGridPosition, TargetCellCoords, MoveDirection)) {
 		SetFacingDirection(MoveDirection);
 	}
 
-	FVector2D TraversedPathKey = GridManagerRef->GetPathCoordsKey(CurrentGridPosition, TargetCellCoords);
-	GridManagerRef->TriggerPath(TraversedPathKey, this);
+	FVector2D TraversedPathKey = GridManager->GetPathCoordsKey(CurrentGridPosition, TargetCellCoords);
+	GridManager->TriggerPath(TraversedPathKey, this);
 
 	CurrentGridPosition = TargetCellCoords;
-	SetActorLocation(GridManagerRef->GridToWorldLocation(TargetCellCoords));
+	SetActorLocation(GridManager->GridToWorldLocation(TargetCellCoords));
 
-	GridManagerRef->TriggerCell(TargetCellCoords, this);
+	GridManager->TriggerCell(TargetCellCoords, this);
 
 	return true;
 }
 
 bool AMasterPawn::MoveInDirection(EGridDirection Direction, bool bTurnAroundAtDeadEnd) {
-	if (!ensure(IsValid(GridManagerRef))) {
+	if (!ensure(IsValid(GridManager))) {
 		return false;
 	}
 
@@ -128,7 +128,7 @@ bool AMasterPawn::MoveInDirection(EGridDirection Direction, bool bTurnAroundAtDe
 }
 
 bool AMasterPawn::StepForwardPatrol() {
-	if (!ensure(IsValid(GridManagerRef))) {
+	if (!ensure(IsValid(GridManager))) {
 		return false;
 	}
 
@@ -141,14 +141,14 @@ bool AMasterPawn::StepForwardPatrol() {
 }
 
 void AMasterPawn::TeleportToCell(FIntVector2 TargetCellCoords, bool bTriggerDestinationCell) {
-	if (!ensure(IsValid(GridManagerRef))) {
+	if (!ensure(IsValid(GridManager))) {
 		return;
 	}
 
 	CurrentGridPosition = TargetCellCoords;
-	SetActorLocation(GridManagerRef->GridToWorldLocation(TargetCellCoords));
+	SetActorLocation(GridManager->GridToWorldLocation(TargetCellCoords));
 
 	if (bTriggerDestinationCell) {
-		GridManagerRef->TriggerCell(TargetCellCoords, this);
+		GridManager->TriggerCell(TargetCellCoords, this);
 	}
 }

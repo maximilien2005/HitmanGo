@@ -12,7 +12,7 @@ class HITMANGO_API UMainPathComponent : public UStaticMeshComponent {
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
-	AGridManager* GridManagerRef = nullptr;
+	AGridManager* GridManager = nullptr;
 
 	// Coordonnée du chemin (ex: (1.5, 0.0))
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")

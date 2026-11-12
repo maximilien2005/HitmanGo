@@ -4,7 +4,10 @@
 #include "Components/StaticMeshComponent.h"
 #include "MainCellComponent.generated.h"
 
+class AMasterPawn;
 class AGridManager;
+struct FSpecialCellConfig;
+
 UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class HITMANGO_API UMainCellComponent : public UStaticMeshComponent {
 	GENERATED_BODY()
@@ -12,11 +15,14 @@ class HITMANGO_API UMainCellComponent : public UStaticMeshComponent {
 public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
-	AGridManager* GridManagerRef;
+	AGridManager* GridManager;
+	virtual void ExecuteCellLogic(AMasterPawn* InteractingPawn);
 
-	// Fonction appelée quand un acteur interagit avec cette case spéciale
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grid Interaction")
-	void ExecuteCaseLogic(AActor* InteractingActor, FIntVector2 CellCoordinates);
+	virtual void InitializeCell(AGridManager* Grid, FIntVector2 Coords, const FSpecialCellConfig& Config);
 
-	virtual void ExecuteCaseLogic_Implementation(AActor* InteractingActor, FIntVector2 CellCoordinates);
+	virtual bool CanBeActivatedBy(const AMasterPawn* Pawn) const;
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid", meta = (AllowPrivateAccess = "true"))
+	FIntVector2 CellCoordinates;
 };

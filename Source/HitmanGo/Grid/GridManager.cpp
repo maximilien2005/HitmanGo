@@ -64,7 +64,7 @@ void AGridManager::OnConstruction(const FTransform& Transform) {
 		return;
 	}
 
-	BuildSpecialCases();
+	BuildSpecialCells();
 	BuildPaths();
 
 #if WITH_EDITOR
@@ -113,15 +113,15 @@ void AGridManager::BuildUsedCellInstances() {
 }
 
 void AGridManager::AddCellInstance(FIntVector2 CellCoords) {
-	if (!GridData->listSpecialCase.Contains(CellCoords)) {
+	if (!GridData->listSpecialCells.Contains(CellCoords)) {
 		FVector InstanceLocation = GridToLocalLocation(CellCoords);
 		CellInstancedMesh->AddInstance(FTransform(InstanceLocation));
 	}
 }
 
-void AGridManager::BuildSpecialCases() {
-	for (const TPair<FIntVector2, FSpecialCaseConfig>& ConfigPair : GridData->listSpecialCase) {
-		TSubclassOf<UMainCellComponent> CellClass = ConfigPair.Value.CaseClass;
+void AGridManager::BuildSpecialCells() {
+	for (const TPair<FIntVector2, FSpecialCellConfig>& ConfigPair : GridData->listSpecialCells) {
+		TSubclassOf<UMainCellComponent> CellClass = ConfigPair.Value.CellClass;
 		if (!CellClass) {
 			continue;
 		}
@@ -133,13 +133,13 @@ void AGridManager::BuildSpecialCases() {
 
 		NewComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
 		NewComp->SetupAttachment(Cells);
-		NewComp->GridManagerRef = this;
+		NewComp->InitializeCell(this, ConfigPair.Key, ConfigPair.Value);
 
 		FVector InstanceLocation = GridToLocalLocation(ConfigPair.Key);
 		NewComp->SetRelativeLocation(InstanceLocation);
 
 		NewComp->RegisterComponent();
-		RuntimeSpecialCases.Add(ConfigPair.Key, NewComp);
+		RuntimeSpecialCells.Add(ConfigPair.Key, NewComp);
 	}
 }
 
@@ -198,7 +198,7 @@ void AGridManager::BuildPaths() {
 
 			NewPathComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
 			NewPathComp->SetupAttachment(Paths);
-			NewPathComp->GridManagerRef = this;
+			NewPathComp->GridManager = this;
 			NewPathComp->PathCoordinates = ChainDataPair.Key;
 			NewPathComp->GridCellPositionA = ChainDataPair.Value.GridCellPositionA;
 			NewPathComp->GridCellPositionB = ChainDataPair.Value.GridCellPositionB;
@@ -221,7 +221,7 @@ void AGridManager::ClearGrid() {
 		}
 	}
 
-	for (auto& Pair : RuntimeSpecialCases) {
+	for (auto& Pair : RuntimeSpecialCells) {
 		if (IsValid(Pair.Value)) {
 			Pair.Value->DestroyComponent();
 		}
@@ -230,7 +230,7 @@ void AGridManager::ClearGrid() {
 	CellInstancedMesh->ClearInstances();
 	PathInstancedMesh->ClearInstances();
 	HighlightInstancedMesh->ClearInstances();
-	RuntimeSpecialCases.Empty();
+	RuntimeSpecialCells.Empty();
 	RuntimeSpecialPaths.Empty();
 }
 
@@ -565,28 +565,28 @@ void AGridManager::ClearCellHighlights() {
 	}
 }
 
-void AGridManager::TriggerCell(FIntVector2 CellCoords, AActor* TargetActor) {
-	if (!ensure(IsValid(TargetActor))) {
+void AGridManager::TriggerCell(FIntVector2 CellCoords, AMasterPawn* TargetPawn) {
+	if (!ensure(IsValid(TargetPawn))) {
 		return;
 	}
 
-	if (RuntimeSpecialCases.Contains(CellCoords)) {
-		UMainCellComponent* CaseComp = RuntimeSpecialCases[CellCoords];
-		if (IsValid(CaseComp)) {
-			CaseComp->ExecuteCaseLogic(TargetActor, CellCoords);
+	if (RuntimeSpecialCells.Contains(CellCoords)) {
+		UMainCellComponent* CellComp = RuntimeSpecialCells[CellCoords];
+		if (IsValid(CellComp) && CellComp->CanBeActivatedBy(TargetPawn)) {
+			CellComp->ExecuteCellLogic(TargetPawn);
 		}
 	}
 }
 
-void AGridManager::TriggerPath(FVector2D PathCoords, AActor* TargetActor) {
-	if (!ensure(IsValid(TargetActor))) {
+void AGridManager::TriggerPath(FVector2D PathCoords, AMasterPawn* TargetPawn) {
+	if (!ensure(IsValid(TargetPawn))) {
 		return;
 	}
 
 	if (RuntimeSpecialPaths.Contains(PathCoords)) {
 		UMainPathComponent* PathComp = RuntimeSpecialPaths[PathCoords];
 		if (IsValid(PathComp)) {
-			PathComp->ExecutePathLogic(TargetActor, PathCoords);
+			PathComp->ExecutePathLogic(TargetPawn, PathCoords);
 		}
 	}
 }

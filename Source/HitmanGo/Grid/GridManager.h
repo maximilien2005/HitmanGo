@@ -42,7 +42,7 @@ private:
 
 	void BuildUsedCellInstances();
 	void AddCellInstance(FIntVector2 CellCoords);
-	void BuildSpecialCases();
+	void BuildSpecialCells();
 	void BuildPaths();
 	AMasterPawn* SpawnPawnOnGrid(TSubclassOf<AMasterPawn> PawnClass, FIntVector2 CellCoords, EGridDirection Direction);
 	void SpawnPlayer();
@@ -73,7 +73,7 @@ public:
 	float EspaceCells = 200.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MapParameters | Runtime")
-	TMap<FIntVector2, UMainCellComponent*> RuntimeSpecialCases;
+	TMap<FIntVector2, UMainCellComponent*> RuntimeSpecialCells;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MapParameters | Runtime")
 	TMap<FVector2D, UMainPathComponent*> RuntimeSpecialPaths;
@@ -136,10 +136,10 @@ public:
 	void ClearCellHighlights();
 
 	UFUNCTION(BlueprintCallable, Category = "Grid Interaction")
-	void TriggerCell(FIntVector2 CellCoords, AActor* TargetActor);
+	void TriggerCell(FIntVector2 CellCoords, AMasterPawn* TargetPawn);
 
 	UFUNCTION(BlueprintCallable, Category = "Grid Interaction")
-	void TriggerPath(FVector2D PathCoords, AActor* TargetActor);
+	void TriggerPath(FVector2D PathCoords, AMasterPawn* TargetPawn);
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

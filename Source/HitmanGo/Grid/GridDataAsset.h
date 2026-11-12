@@ -45,11 +45,11 @@ struct FEnemySpawnData {
 };
 
 USTRUCT(BlueprintType)
-struct FSpecialCaseConfig {
+struct FSpecialCellConfig {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UMainCellComponent> CaseClass = nullptr;
+	TSubclassOf<UMainCellComponent> CellClass = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FIntVector2 TargetPosition = FIntVector2(0, 0);
@@ -79,7 +79,7 @@ public:
 	TMap<FIntVector2, FEnemySpawnData> listEnemiesStart;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MapParameters | Data")
-	TMap<FIntVector2, FSpecialCaseConfig> listSpecialCase;
+	TMap<FIntVector2, FSpecialCellConfig> listSpecialCells;
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	FVector2D GetPathCoordsKey(FIntVector2 GridCellPositionA, FIntVector2 GridCellPositionB) const;

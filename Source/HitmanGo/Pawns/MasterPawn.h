@@ -43,7 +43,7 @@ public:
 	EGridDirection CurrentDirection = EGridDirection::North;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
-	AGridManager* GridManagerRef = nullptr;
+	AGridManager* GridManager = nullptr;
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	virtual void InitializePawnOnGrid(FIntVector2 StartPosition, EGridDirection StartDirection, AGridManager* Manager);
