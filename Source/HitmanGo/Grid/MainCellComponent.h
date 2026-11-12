@@ -2,11 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/StaticMeshComponent.h"
-#include "MainCaseComponent.generated.h"
+#include "MainCellComponent.generated.h"
 
 class AGridManager;
 UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
-class HITMANGO_API UMainCaseComponent : public UStaticMeshComponent {
+class HITMANGO_API UMainCellComponent : public UStaticMeshComponent {
 	GENERATED_BODY()
 
 public:

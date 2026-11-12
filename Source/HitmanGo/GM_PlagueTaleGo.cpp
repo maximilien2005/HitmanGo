@@ -1,5 +1,8 @@
 #include "GM_PlagueTaleGo.h"
 #include "Pawns/MasterPawn.h"
+#include "Pawns/PlayerPawn.h"
+#include "Pawns/EnemyPawn.h"
+#include "Pawns/HugoPawn.h"
 #include "Kismet/GameplayStatics.h"
 #include "Grid/GridManager.h"
 #include "GS_PlagueTaleGo.h"
@@ -40,8 +43,7 @@ void AGM_PlagueTaleGo::OnExitReached(AActor* Actor) {
 	}
 
 	AMasterPawn* AllyPawn = Cast<AMasterPawn>(Actor);
-	const bool bIsPlayerPawn = (AllyPawn && AllyPawn == GridManager->ActivePlayerPawn);
-	if (bIsPlayerPawn) {
+	if (AllyPawn && AllyPawn->IsA<APlayerPawn>()) {
 		UE_LOG(LogTemp, Warning, TEXT("Exit reached ! You win !"));
 		GameOver();
 	}

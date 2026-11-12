@@ -7,6 +7,7 @@
 #include "InputAction.h"
 #include "GS_PlagueTaleGo.h"
 #include "Pawns/MasterPawn.h"
+#include "Pawns/PlayerPawn.h"
 #include "GM_PlagueTaleGo.h"
 
 void  APC_PlagueTaleGo::BeginPlay() {

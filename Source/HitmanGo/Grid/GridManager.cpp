@@ -121,12 +121,12 @@ void AGridManager::AddCellInstance(FIntVector2 CellCoords) {
 
 void AGridManager::BuildSpecialCases() {
 	for (const TPair<FIntVector2, FSpecialCaseConfig>& ConfigPair : GridData->listSpecialCase) {
-		TSubclassOf<UMainCaseComponent> CellClass = ConfigPair.Value.CaseClass;
+		TSubclassOf<UMainCellComponent> CellClass = ConfigPair.Value.CaseClass;
 		if (!CellClass) {
 			continue;
 		}
 
-		UMainCaseComponent* NewComp = NewObject<UMainCaseComponent>(this, CellClass);
+		UMainCellComponent* NewComp = NewObject<UMainCellComponent>(this, CellClass);
 		if (!ensure(IsValid(NewComp))) {
 			continue;
 		}
@@ -571,7 +571,7 @@ void AGridManager::TriggerCell(FIntVector2 CellCoords, AActor* TargetActor) {
 	}
 
 	if (RuntimeSpecialCases.Contains(CellCoords)) {
-		UMainCaseComponent* CaseComp = RuntimeSpecialCases[CellCoords];
+		UMainCellComponent* CaseComp = RuntimeSpecialCases[CellCoords];
 		if (IsValid(CaseComp)) {
 			CaseComp->ExecuteCaseLogic(TargetActor, CellCoords);
 		}

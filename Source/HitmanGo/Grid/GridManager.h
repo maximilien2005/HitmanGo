@@ -73,7 +73,7 @@ public:
 	float EspaceCells = 200.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MapParameters | Runtime")
-	TMap<FIntVector2, UMainCaseComponent*> RuntimeSpecialCases;
+	TMap<FIntVector2, UMainCellComponent*> RuntimeSpecialCases;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MapParameters | Runtime")
 	TMap<FVector2D, UMainPathComponent*> RuntimeSpecialPaths;

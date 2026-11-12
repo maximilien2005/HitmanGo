@@ -26,13 +26,7 @@ public class HitmanGo : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		PublicIncludePaths.AddRange(new string[] {
-			"HitmanGo",
-			"HitmanGo/Variant_Strategy",
-			"HitmanGo/Variant_Strategy/UI",
-			"HitmanGo/Variant_TwinStick",
-			"HitmanGo/Variant_TwinStick/AI",
-			"HitmanGo/Variant_TwinStick/Gameplay",
-			"HitmanGo/Variant_TwinStick/UI"
+			"HitmanGo"
 		});
 
 		// Uncomment if you are using Slate UI

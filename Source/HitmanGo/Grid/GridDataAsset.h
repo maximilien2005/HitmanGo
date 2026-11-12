@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "MainCaseComponent.h"
+#include "MainCellComponent.h"
 #include "MainPathComponent.h"
 #include "GridDataAsset.generated.h"
 
@@ -49,7 +49,7 @@ struct FSpecialCaseConfig {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UMainCaseComponent> CaseClass = nullptr;
+	TSubclassOf<UMainCellComponent> CaseClass = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FIntVector2 TargetPosition = FIntVector2(0, 0);
