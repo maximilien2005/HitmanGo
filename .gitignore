@@ -77,12 +77,11 @@ DerivedDataCache/*
 #ignore les fichiers dans le content
 Content/*
 #sauf
-!Content/Characters/
-!Content/Collections/
-!Content/Cursor/
-!Content/Developers/
-!Content/LevelPrototyping/
-!Content/Project/
-!Content/TopDown/
-!Content/Variant_Strategy/
-!Content/Variant_TwinStick/
+!Content/BP/
+!Content/DataAssets/
+!Content/Enums/
+!Content/Inputs/
+!Content/Levels/
+!Content/Materials/
+!Content/Meshes/
+!Content/Structures/
